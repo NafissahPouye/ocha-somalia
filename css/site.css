@@ -141,7 +141,7 @@ strong {
 .regionLabel {
 	position: absolute;
 	z-index: 2;
-	top: 20px;
+	bottom: 20px;
 	right: 35px;
 	text-align: right;
 }
@@ -157,6 +157,9 @@ strong {
 	.keystat {
 		text-align: right;
 		width: 64%;
+	}
+	.regionLabel {
+		bottom: 50px;
 	}
 }
 
