@@ -64,15 +64,22 @@ var targetcf,
     targetGroupByIndicator,
     progressGroupByIndicator;
 
-function generateCharts(targetData, progressData){
+function generateCharts(targetData, progressData, keyfigureTargetData, keyfigureProgressData){
     targetcf = crossfilter(targetData);
     progresscf = crossfilter(progressData);
+    keyfigureTargetcf = crossfilter(keyfigureTargetData);
+    keyfigureProgresscf = crossfilter(keyfigureProgressData);
 
     targetData.forEach(function(d){
         d['#targeted'] = checkIntData(d['#targeted']);
     });
-
     progressData.forEach(function(d){
+        d['#value'] = checkIntData(d['#value']);
+    });
+    keyfigureTargetData.forEach(function(d){
+        d['#targeted'] = checkIntData(d['#targeted']);
+    });
+    keyfigureProgressData.forEach(function(d){
         d['#value'] = checkIntData(d['#value']);
     });
 
@@ -80,9 +87,15 @@ function generateCharts(targetData, progressData){
     targetIndicatorDim = targetcf.dimension(function(d) { return d['#sector']+'|'+d['#indicator']; });
     progressIndicatorDim = progresscf.dimension(function(d) { return d['#indicator']; });
 
-    //get target and progress data values for key stats
     targetGroupByIndicator = targetIndicatorDim.group().reduceSum(function(d){return d['#targeted']; }).all();
     progressGroupByIndicator = progressIndicatorDim.group().reduceSum(function(d){return d['#value']; }).all();
+    
+    //get target and progress data values for key stats
+    keyfigureTargetIndicatorDim = keyfigureTargetcf.dimension(function(d) { return d['#sector']+'|'+d['#indicator']; });
+    keyfigureProgressIndicatorDim = keyfigureProgresscf.dimension(function(d) { return d['#indicator']; });
+
+    keyfigureTargetGroupByIndicator = keyfigureTargetIndicatorDim.group().reduceSum(function(d){return d['#targeted']; }).all();
+    keyfigureProgressGroupByIndicator = keyfigureProgressIndicatorDim.group().reduceSum(function(d){return d['#value']; }).all();
 
     for (var i=0; i<targetGroupByIndicator.length; i++) {
         //create data structure for target line
@@ -94,6 +107,19 @@ function generateCharts(targetData, progressData){
         var mthDiff = monthDiff(startDate, endDate);
         var spanType = targetArr[0]['#meta+cumulative'];
         //var targetSpan = (spanType.toLowerCase()=='per month') ? '' : '(over ' + mthDiff + ' mths)';
+
+        var keyfigureTarg = '';
+        keyfigureTargetGroupByIndicator.forEach(function(obj, index) { 
+            if (obj.key == targetGroupByIndicator[i].key) {
+                keyfigureTarg = obj.value;
+            }
+        });
+        var keyfigureProg = '';
+        keyfigureProgressGroupByIndicator.forEach(function(obj, index) { 
+            if (obj.key == currentIndicator) {
+                keyfigureProg = obj.value;
+            }
+        });
 
         //get target values
         var valueTargetArray = ['Target'];
@@ -117,13 +143,10 @@ function generateCharts(targetData, progressData){
             });
             //add last total to array
             valueTargetArray.push(total);
-            targetVal += Number(total);
         }
         else {
             for (var j=0; j<mthDiff; j++) {
                 valueTargetArray.push(targetGroupByIndicator[i].value);
-                //targetVal += Number(targetGroupByIndicator[i].value)
-                targetVal = Number(targetGroupByIndicator[i].value);
             }
         }
 
@@ -134,7 +157,6 @@ function generateCharts(targetData, progressData){
         var lastDate = new Date();
         var total = 0;
         var first = true;
-        var reachedVal = 0;
         indicatorArr.forEach(function(value, index) {
             if (first) {
                 lastDate = value['#date'];
@@ -144,7 +166,6 @@ function generateCharts(targetData, progressData){
             if (value['#date'].getTime() != lastDate.getTime()) {
                 lastDate = value['#date'];
                 valueReachedArray.push(total);
-                reachedVal += Number(total);
                 dateArray.push(lastDate);
                 total = 0;
             }
@@ -152,11 +173,10 @@ function generateCharts(targetData, progressData){
         });
         //add last total to array
         valueReachedArray.push(total);
-        reachedVal += Number(total);
 
         var sectorIcon = currentSector.toLowerCase().replace(/ /g, '').split('(')[0];
         //create key stats
-        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header '+sectorIcon+'"><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat"><div class="num targetNum">' + formatComma(targetVal) + '</div> Targeted</div><div class="keystat"><div class="num reachedNum">' + formatComma(reachedVal) + '</div> Reached</div><div class="timespan text-center small">(' + spanType + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
+        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header '+sectorIcon+'"><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat"><div class="num targetNum">' + formatComma(keyfigureTarg) + '</div> Targeted</div><div class="keystat"><div class="num reachedNum">' + formatComma(keyfigureProg) + '</div> Reached</div><div class="timespan text-center small">(' + spanType + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
 
         //create bar charts
         var chartType = 'line';
@@ -191,6 +211,11 @@ function generateCharts(targetData, progressData){
                     padding: { bottom : 0 }
                 }
             },
+            tooltip: {
+                format: {
+                    value: d3.format(',') 
+                }
+            },
             padding: { right: 35 }
         });
 
@@ -207,13 +232,30 @@ function updateCharts(region) {
         var targetedVal = 0, 
             startDate,
             endDate,
-            mthDiff;
+            mthDiff,
+            keyfigureTarg = 0,
+            keyfigureProg = 0;
         targetArr.forEach(function(value, index) {
             if (value['#adm1+name'] == region || region == '') {
                 targetedVal += Number(value['#targeted']);
                 startDate = new Date(value['#date+start']);
                 endDate = new Date(value['#date+end']);
                 mthDiff = monthDiff(startDate, endDate);
+            }
+        });
+
+        //get key figure target number
+        var keyfigureTargetArr = keyfigureTargetIndicatorDim.filter(targetGroupByIndicator[i].key).top(Infinity);
+        keyfigureTargetArr.forEach(function(value, index) {
+            if (value['#adm1+name'] == region || region == '') {
+                keyfigureTarg += Number(value['#targeted']);
+            }
+        });
+        //get key figure progress number
+        var keyfigureProgressArr = keyfigureProgressIndicatorDim.filter(currentIndicator).top(Infinity);
+        keyfigureProgressArr.forEach(function(value, index) {
+            if (value['#adm1+name'] == region || region == '') {
+                keyfigureProg += Number(value['#value']);
             }
         });
 
@@ -267,7 +309,6 @@ function updateCharts(region) {
                 if (value['#date'].getTime() != lastDate.getTime()) {
                     lastDate = value['#date'];
                     valueReachedArray.push(total);
-                    reachedVal += Number(total);
                     dateArray.push(lastDate);
                     total = 0;
                 }
@@ -276,11 +317,10 @@ function updateCharts(region) {
         });
         //add last total to array
         valueReachedArray.push(total);
-        reachedVal += Number(total);
 
-        //update key stats
-        $('#indicator'+i).find('.targetNum').html(formatComma(targetedVal));//*mthDiff
-        $('#indicator'+i).find('.reachedNum').html(formatComma(reachedVal));
+        //update key figures
+        $('#indicator'+i).find('.targetNum').html(formatComma(keyfigureTarg));
+        $('#indicator'+i).find('.reachedNum').html(formatComma(keyfigureProg));
 
         //update bar charts
         var currentChart = $('#chart'+i).data('chartObj');
@@ -307,7 +347,7 @@ function generateMap(adm1){
         .attr('width', width)
         .attr('height', height);
 
-    var mapscale = ($('body').width()<768) ? width*4 : width*2;
+    var mapscale = ($('body').width()<768) ? width*4.7 : width*2.7;
     var mapprojection = d3.geo.mercator()
         .center([47, 5])
         .scale(mapscale)
@@ -384,10 +424,24 @@ var progressCall = $.ajax({
     dataType: 'json',
 });
 
-$.when(targetCall, progressCall).then(function(targetArgs, progressArgs){
+var keyfigureTargetCall = $.ajax({ 
+    type: 'GET', 
+    url: 'https://proxy.hxlstandard.org/data.json?strip-headers=on&url=https%3A//docs.google.com/spreadsheets/d/1YmwfVaqZKKk2hTESkDfhi5RRlmXMAZ2j47PIS10Li_w/edit%23gid%3D1820516564force=on',
+    dataType: 'json',
+});
+
+var keyfigureProgressCall = $.ajax({ 
+    type: 'GET', 
+    url: 'https://proxy.hxlstandard.org/data.json?strip-headers=on&url=https%3A//docs.google.com/spreadsheets/d/1YmwfVaqZKKk2hTESkDfhi5RRlmXMAZ2j47PIS10Li_w/edit%23gid%3D959244210&force=on',
+    dataType: 'json',
+});
+
+$.when(targetCall, progressCall, keyfigureTargetCall, keyfigureProgressCall).then(function(targetArgs, progressArgs, keyfigureTargetArgs, keyfigureProgressArgs){
     var targetData = parseDates([['#date+start'],['#date+end']], (hxlProxyToJSON(targetArgs[0])));
     var progressData = parseDates(['#date'],(hxlProxyToJSON(progressArgs[0])));
-    generateCharts(targetData, progressData);
+    var keyfigureTargetData = hxlProxyToJSON(keyfigureTargetArgs[0]);
+    var keyfigureProgressData = hxlProxyToJSON(keyfigureProgressArgs[0]);
+    generateCharts(targetData, progressData, keyfigureTargetData, keyfigureProgressData);
 });
 
 $.when(targetCall, progressCall, adm1Call).then(function(targetArgs, progressArgs, adm1Args){
