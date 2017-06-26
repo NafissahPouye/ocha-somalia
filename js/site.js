@@ -56,6 +56,11 @@ function monthDiff(d1, d2) {
     return d2.getMonth() - d1.getMonth() + 1;
 }
 
+function generateDescription(descriptionData){
+    $('.description-text h1').text(descriptionData[0]['#description+title']);
+    $('.description-text p').text(descriptionData[0]['#description'])
+}
+
 var formatComma = d3.format(',');
 var targetcf, 
     progresscf,
@@ -176,7 +181,7 @@ function generateCharts(targetData, progressData, keyfigureTargetData, keyfigure
 
         var sectorIcon = currentSector.toLowerCase().replace(/ /g, '').split('(')[0];
         //create key stats
-        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header '+sectorIcon+'"><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat"><div class="num targetNum">' + formatComma(keyfigureTarg) + '</div> Targeted</div><div class="keystat"><div class="num reachedNum">' + formatComma(keyfigureProg) + '</div> Reached</div><div class="timespan text-center small">(' + spanType + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
+        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header"><i class="icon-ocha icon-'+sectorIcon+'"></i><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat"><div class="num targetNum">' + formatComma(keyfigureTarg) + '</div> Targeted</div><div class="keystat"><div class="num reachedNum">' + formatComma(keyfigureProg) + '</div> Reached</div><div class="timespan text-center small">(' + spanType + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
 
         //create bar charts
         var chartType = 'line';
@@ -434,6 +439,17 @@ var keyfigureProgressCall = $.ajax({
     type: 'GET', 
     url: 'https://proxy.hxlstandard.org/data.json?strip-headers=on&url=https%3A//docs.google.com/spreadsheets/d/1YmwfVaqZKKk2hTESkDfhi5RRlmXMAZ2j47PIS10Li_w/edit%23gid%3D959244210&force=on',
     dataType: 'json',
+});
+
+var descriptionCall = $.ajax({ 
+    type: 'GET', 
+    url: 'https://proxy.hxlstandard.org/data.json?strip-headers=on&url=https%3A//docs.google.com/spreadsheets/d/1YmwfVaqZKKk2hTESkDfhi5RRlmXMAZ2j47PIS10Li_w/edit%23gid%3D546323230&force=on',
+    dataType: 'json',
+});
+
+$.when(descriptionCall).then(function(descriptionArgs){
+    var descriptionData = hxlProxyToJSON(descriptionArgs);
+    generateDescription(descriptionData);
 });
 
 $.when(targetCall, progressCall, keyfigureTargetCall, keyfigureProgressCall).then(function(targetArgs, progressArgs, keyfigureTargetArgs, keyfigureProgressArgs){

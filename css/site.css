@@ -53,6 +53,16 @@ a {
 strong {
 	font-family: 'Gotham-Bold';
 }
+.icon-ocha {
+	color: #046bb5;
+	font-size: 24px;
+	left: 25px;
+	position: absolute;
+	top: 10px;
+}
+.icon-education {
+	font-size: 18px;
+}
 .text-center {
 	text-align: center;
 }
@@ -78,27 +88,6 @@ strong {
     padding: 1px 8px 0 45px;
     background-repeat: no-repeat;
     background-position: 8px 8px;
-}
-.header.education {
-	background-image: url('../icons/education.png');
-}
-.header.foodsecuritycluster {
-	background-image: url('../icons/foodsecuritycluster.png');
-}
-.header.health {
-	background-image: url('../icons/health.png');
-}
-.header.nutrition {
-	background-image: url('../icons/nutrition.png');
-}
-.header.protection {
-	background-image: url('../icons/protection.png');
-}
-.header.shelter {
-	background-image: url('../icons/shelter.png');
-}
-.header.wash {
-	background-image: url('../icons/wash.png');
 }
 .header h4 {
 	color: #fff;
