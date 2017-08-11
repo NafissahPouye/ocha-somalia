@@ -95,6 +95,9 @@ strong {
 .timespan {
 	margin-top: 20px;
 }
+.keystat-container {
+	min-height: 84px;
+}
 .keystat {
 	text-align: right;
 	width: 75%;
@@ -144,9 +147,6 @@ strong {
 .c3-legend-item,
 .c3-axis {
 	font-family: 'SourceSansPro-Regular';
-}
-.invis {
-	opacity: 0;
 }
 
 @media (min-width: 767px){

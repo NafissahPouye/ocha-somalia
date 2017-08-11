@@ -195,10 +195,11 @@ function generateCharts(targetData, progressData, keyfigureTargetData, keyfigure
         valueReachedArray.push(total);
 
         var sectorIcon = currentSector.toLowerCase().replace(/ /g, '').split('(')[0];
-        var targClass = (keyfigureTarg <= 0) ? 'invis' : '';
+        var targClass = (keyfigureTarg <= 0) ? 'hidden' : '';
+        var reachClass = (keyfigureProg <= 0) ? 'hidden' : '';
 
         //create key stats
-        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header"><i class="icon-ocha icon-'+sectorIcon+'"></i><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat ' + targClass + '"><div class="num targetNum">' + formatComma(keyfigureTarg) + '</div> targeted</div><div class="keystat"><div class="num reachedNum">' + formatComma(keyfigureProg) + '</div> reached</div><div class="timespan text-center small">(' + spanType + dateRange + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
+        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header"><i class="icon-ocha icon-'+sectorIcon+'"></i><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat-container"><div class="keystat ' + targClass + '"><div class="num targetNum">' + formatComma(keyfigureTarg) + '</div> targeted</div><div class="keystat ' + reachClass + '"><div class="num reachedNum">' + formatComma(keyfigureProg) + '</div> reached</div></div><div class="timespan text-center small">(' + spanType + dateRange + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
 
         //create bar charts
         var chartType = 'line';
@@ -341,6 +342,11 @@ function updateCharts(region) {
         valueReachedArray.push(total);
 
         //update key figures
+        var targClass = (keyfigureTarg <= 0) ? 'hidden' : '';
+        var reachClass = (keyfigureProg <= 0) ? 'hidden' : '';
+        $('#indicator'+i).find('.targetNum').parent().removeClass('hidden').addClass(targClass);
+        $('#indicator'+i).find('.reachedNum').parent().removeClass('hidden').addClass(reachClass);
+
         $('#indicator'+i).find('.targetNum').html(formatComma(keyfigureTarg));
         $('#indicator'+i).find('.reachedNum').html(formatComma(keyfigureProg));
 
@@ -421,10 +427,9 @@ function generateMap(adm1, countrieslabel){
         .append('text')
         .attr('class', 'countryLabel')
         .attr("transform", function(d) {
-            console.log(d.coordinates[0], d.coordinates[1]);
           return "translate(" + mapprojection([d.coordinates[0], d.coordinates[1]]) + ")";
         })
-        .text(function(d){ console.log(d.country); return d.country; });
+        .text(function(d){ return d.country; });
 
 
     $('.reset-btn').on('click', reset);
