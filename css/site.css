@@ -108,10 +108,10 @@ strong {
 }
 .map-container {
 	display: none;
+	margin-bottom: 30px;
 }
 #map {
-	border: 1px solid #a7a9ac;
-	margin-bottom: 30px;
+	background-color: #b5d0d0;
 }
 .map-tip{
   position: absolute;
@@ -127,6 +127,9 @@ strong {
 #adm1layer path {
 	cursor: pointer;
 }
+#adm1layer path.inactive {
+	cursor: default;
+}
 .regionLabel {
 	position: absolute;
 	z-index: 2;
@@ -134,9 +137,16 @@ strong {
 	right: 35px;
 	text-align: right;
 }
+.countryLabel {
+	fill: #333;
+	font-size: 10px;
+}
 .c3-legend-item,
 .c3-axis {
 	font-family: 'SourceSansPro-Regular';
+}
+.invis {
+	opacity: 0;
 }
 
 @media (min-width: 767px){
@@ -148,7 +158,7 @@ strong {
 		width: 64%;
 	}
 	.regionLabel {
-		bottom: 50px;
+		bottom: 65px;
 	}
 }
 
