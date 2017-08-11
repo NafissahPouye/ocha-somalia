@@ -1,6 +1,6 @@
 function hxlProxyToJSON(input){
     var output = [];
-    var keys=[]
+    var keys = [];
     input.forEach(function(e,i){
         if(i==0){
             e.forEach(function(e2,i2){
@@ -61,6 +61,11 @@ function generateDescription(descriptionData){
     $('.description-text p').text(descriptionData[0]['#description'])
 }
 
+function getMonthName(monthID) {
+    var monthArray = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return monthArray[monthID];
+}
+
 var formatComma = d3.format(',');
 var targetcf, 
     progresscf,
@@ -111,7 +116,17 @@ function generateCharts(targetData, progressData, keyfigureTargetData, keyfigure
         var endDate = new Date(targetArr[0]['#date+end']);
         var mthDiff = monthDiff(startDate, endDate);
         var spanType = targetArr[0]['#meta+cumulative'];
-        //var targetSpan = (spanType.toLowerCase()=='per month') ? '' : '(over ' + mthDiff + ' mths)';
+        var dateRange = '';
+        switch(spanType.toLowerCase()) {
+            case 'per month':
+                dateRange = (targetArr[0]['#date+end']!=null) ? ' as of ' + getMonthName(endDate.getMonth()) : '';
+                break;
+            case 'monthly':
+                dateRange = ' as of ' + getMonthName(endDate.getMonth());
+                break;
+            default:
+                dateRange = ' ' + getMonthName(startDate.getMonth()) + ' to ' + getMonthName(endDate.getMonth());
+        }
 
         var keyfigureTarg = '';
         keyfigureTargetGroupByIndicator.forEach(function(obj, index) { 
@@ -180,8 +195,10 @@ function generateCharts(targetData, progressData, keyfigureTargetData, keyfigure
         valueReachedArray.push(total);
 
         var sectorIcon = currentSector.toLowerCase().replace(/ /g, '').split('(')[0];
+        var targClass = (keyfigureTarg <= 0) ? 'invis' : '';
+
         //create key stats
-        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header"><i class="icon-ocha icon-'+sectorIcon+'"></i><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat"><div class="num targetNum">' + formatComma(keyfigureTarg) + '</div> Targeted</div><div class="keystat"><div class="num reachedNum">' + formatComma(keyfigureProg) + '</div> Reached</div><div class="timespan text-center small">(' + spanType + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
+        $('.graphs').append('<div class="col-sm-6 col-md-4" id="indicator' + i + '"><div class="header"><i class="icon-ocha icon-'+sectorIcon+'"></i><h4>' + currentSector + '</h4><h3>'+  currentIndicator +'</h3></div><div class="chart-container"><div class="keystat ' + targClass + '"><div class="num targetNum">' + formatComma(keyfigureTarg) + '</div> targeted</div><div class="keystat"><div class="num reachedNum">' + formatComma(keyfigureProg) + '</div> reached</div><div class="timespan text-center small">(' + spanType + dateRange + ')</div><div id="chart' + i + '" class="chart"></div></div></div>');
 
         //create bar charts
         var chartType = 'line';
@@ -338,9 +355,10 @@ function updateCharts(region) {
 
 var mapsvg,
     centered;
-var fillColor = 'rgba(199,214,235,0.5)';//'#c7d6ee';
-var hoverColor = '#f47933';
-function generateMap(adm1){
+var fillColor = '#dddddd';//rgba(199,214,235,0.5)';//'#c7d6ee';
+var hoverColor = '#3b88c0';//'#f47933';
+var inactiveFillColor = '#f2efe9';
+function generateMap(adm1, countrieslabel){
     //remove loader and show map
     $('.sp-circle').remove();
     $('.map-container').fadeIn();
@@ -363,17 +381,23 @@ function generateMap(adm1){
         .data(adm1.features).enter()
         .append('path')
         .attr('d', d3.geo.path().projection(mapprojection))
-        .attr('class','adm1')
-        .attr('fill', fillColor)
-        .attr('stroke-width', 1)
-        .attr('stroke','#a7a9ac')
         .attr('id',function(d){
             return d.properties.admin1Name;
-        });
+        })
+        .attr('class',function(d){
+            var classname = (d.properties.admin1Name != '0') ? 'adm1' : 'inactive';
+            return classname;
+        })
+        .attr('fill', function(d) {
+            var clr = (d.properties.admin1Name != '0') ? fillColor: inactiveFillColor;
+            return clr;
+        })
+        .attr('stroke-width', 1)
+        .attr('stroke','#7d868d');
 
     //map tooltips
     var maptip = d3.select('#map').append('div').attr('class', 'd3-tip map-tip hidden');
-    path
+    path.filter('.adm1')
         .on('mousemove', function(d,i) {
             $(this).attr('fill', hoverColor);
             var mouse = d3.mouse(mapsvg.node()).map( function(d) { return parseInt(d); } );
@@ -385,18 +409,30 @@ function generateMap(adm1){
         .on('mouseout',  function(d,i) {
             if (!$(this).data('selected'))
                 $(this).attr('fill', fillColor);
-            maptip.classed('hidden', true)
+            maptip.classed('hidden', true);
         })
         .on('click', function(d,i){
             selectRegion($(this), d.properties.admin1Name);
         }); 
+
+    //create country labels
+    var country = g.selectAll('text')
+        .data(countrieslabel).enter()
+        .append('text')
+        .attr('class', 'countryLabel')
+        .attr("transform", function(d) {
+            console.log(d.coordinates[0], d.coordinates[1]);
+          return "translate(" + mapprojection([d.coordinates[0], d.coordinates[1]]) + ")";
+        })
+        .text(function(d){ console.log(d.country); return d.country; });
+
 
     $('.reset-btn').on('click', reset);
 }
 
 function selectRegion(region, name) {
     region.siblings().data('selected', false);
-    region.siblings().attr('fill', fillColor);
+    region.siblings('.adm1').attr('fill', fillColor);
     region.attr('fill', hoverColor);
     region.data('selected', true);
     $('.regionLabel > div > strong').html(name);
@@ -404,16 +440,27 @@ function selectRegion(region, name) {
 }
 
 function reset() {
-    $('#adm1layer').children().attr('fill', fillColor);
+    $('#adm1layer').children('.adm1').attr('fill', fillColor);
     $('.regionLabel > div > strong').html('All Regions');
     updateCharts('');
     return false;
 }
 
+var somCall = $.ajax({ 
+    type: 'GET', 
+    url: 'data/som-merged-topo.json',
+    dataType: 'json',
+});
 
 var adm1Call = $.ajax({ 
     type: 'GET', 
     url: 'data/som_adm1.json',
+    dataType: 'json',
+});
+
+var countrieslabelCall = $.ajax({ 
+    type: 'GET', 
+    url: 'data/countries.json',
     dataType: 'json',
 });
 
@@ -447,6 +494,7 @@ var descriptionCall = $.ajax({
     dataType: 'json',
 });
 
+
 $.when(descriptionCall).then(function(descriptionArgs){
     var descriptionData = hxlProxyToJSON(descriptionArgs);
     generateDescription(descriptionData);
@@ -460,7 +508,9 @@ $.when(targetCall, progressCall, keyfigureTargetCall, keyfigureProgressCall).the
     generateCharts(targetData, progressData, keyfigureTargetData, keyfigureProgressData);
 });
 
-$.when(targetCall, progressCall, adm1Call).then(function(targetArgs, progressArgs, adm1Args){
-    var adm1 = topojson.feature(adm1Args[0],adm1Args[0].objects.som_adm1);
-    generateMap(adm1);
+$.when(adm1Call, somCall, countrieslabelCall).then(function(adm1Args, somArgs, countrieslabelArgs){
+    //var adm1 = topojson.feature(adm1Args[0],adm1Args[0].objects.som_adm1);
+    var som = topojson.feature(somArgs[0],somArgs[0].objects.som_merged);
+    var countrieslabel = countrieslabelArgs[0].countries;
+    generateMap(som, countrieslabel);
 });
